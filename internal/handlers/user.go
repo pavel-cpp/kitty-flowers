@@ -61,8 +61,7 @@ func (u *User) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 
 	for _, t := range u.defaultSubsTimes {
-		year, month, day := time.Now().Date()
-		err := u.subsService.Subscribe(ctx, id, t.AddDate(year, int(month), day))
+		err := u.subsService.Subscribe(ctx, id, t)
 		if err != nil {
 			slog.Error("subscribe error", err)
 		}

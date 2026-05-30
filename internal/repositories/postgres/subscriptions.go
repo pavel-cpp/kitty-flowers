@@ -44,8 +44,8 @@ func (s *SubscriptionsRepository) CreateSubscription(ctx context.Context, userID
 	return nil
 }
 
-func (s *SubscriptionsRepository) GetReadyUsers(ctx context.Context, time time.Time) ([]entity.User, error) {
-	query := `SELECT u.id, u.username, u.chat_id FROM subscriptions s
+func (s *SubscriptionsRepository) GetUnnotifiedUsers(ctx context.Context, time time.Time) ([]entity.UserNotification, error) {
+	query := `SELECT u.id, u.username, u.chat_id, s.id, s.next_run FROM subscriptions s
 			LEFT JOIN users u ON u.id = s.user_id
 			WHERE s.active IS TRUE AND s.next_run < $1`
 	rows, err := s.db.QueryContext(ctx, query, time)
@@ -58,10 +58,10 @@ func (s *SubscriptionsRepository) GetReadyUsers(ctx context.Context, time time.T
 			panic(err)
 		}
 	}(rows)
-	var users []entity.User
+	var users []entity.UserNotification
 	for rows.Next() {
-		var user entity.User
-		err = rows.Scan(&user.ID, &user.Username, &user.ChatID)
+		var user entity.UserNotification
+		err = rows.Scan(&user.ID, &user.Username, &user.ChatID, &user.NotificationID, &user.CurrentRun)
 		if err != nil {
 			return nil, err
 		}
@@ -70,12 +70,11 @@ func (s *SubscriptionsRepository) GetReadyUsers(ctx context.Context, time time.T
 	return users, nil
 }
 
-// TODO: Make move logic in code
-func (s *SubscriptionsRepository) MoveTimes(ctx context.Context, subID int) error {
-	_, err := s.db.ExecContext(ctx, "UPDATE subscriptions SET last_run = next_run WHERE id = $1", subID)
+func (s *SubscriptionsRepository) UpdateUserNotificationTime(ctx context.Context, notificationID int, nextRun time.Time) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE subscriptions SET last_run = next_run WHERE id = $1", notificationID)
 	if err != nil {
 		return err
 	}
-	_, err = s.db.ExecContext(ctx, "UPDATE subscriptions SET next_run =  WHERE user_id = $1", subID)
+	_, err = s.db.ExecContext(ctx, "UPDATE subscriptions SET next_run = $1 WHERE id = $2", nextRun, notificationID)
 	return err
 }

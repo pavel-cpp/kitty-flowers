@@ -12,8 +12,8 @@ import (
 
 type SubscriptionsRepository interface {
 	CreateSubscription(ctx context.Context, userID uuid.UUID, timestamp time.Time) error
-	GetReadyUsers(ctx context.Context, time time.Time) ([]entity.User, error)
-	UpdateSubscription(ctx context.Context, userID uuid.UUID, timestamp time.Time) error
+	GetUnnotifiedUsers(ctx context.Context, time time.Time) ([]entity.UserNotification, error)
+	UpdateUserNotificationTime(ctx context.Context, notificationID int, nextRun time.Time) error
 }
 
 type Service struct {
@@ -24,19 +24,25 @@ func New(repo SubscriptionsRepository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) Subscribe(ctx context.Context, userID uuid.UUID, timestamp time.Time) error {
+func (s *Service) Subscribe(ctx context.Context, userID uuid.UUID, timeOfDay time.Time) error {
+	now := time.Now()
+	year, month, day := now.Date()
+	timestamp := timeOfDay.AddDate(year, int(month)-1, day-1)
+	if now.After(timestamp) {
+		timestamp = timestamp.AddDate(0, 0, 1)
+	}
 	return s.repo.CreateSubscription(ctx, userID, timestamp)
 }
 
 func (s *Service) NotifyUsers(ctx context.Context, notifyFunc func(context.Context, entity.User)) error {
-	users, err := s.repo.GetReadyUsers(ctx, time.Now())
+	users, err := s.repo.GetUnnotifiedUsers(ctx, time.Now())
 	fmt.Println(users)
 	if err != nil {
 		return err
 	}
 	for _, user := range users {
-		notifyFunc(ctx, user)
-		err = s.repo.UpdateSubscription(ctx, user.ID, time.Now())
+		notifyFunc(ctx, user.User)
+		err = s.repo.UpdateUserNotificationTime(ctx, user.NotificationID, user.CurrentRun.AddDate(0, 0, 1))
 		if err != nil {
 			slog.Error("failed to update subscription", "user_id", user.ID, "error", err)
 		}

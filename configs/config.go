@@ -43,11 +43,11 @@ func LoadNotifications() Notifications {
 	}
 	times := make([]time.Time, 0, len(timesStrs))
 	for _, timeStr := range timesStrs {
-		time, err := time.Parse(time.TimeOnly, timeStr)
+		timeOfDay, err := time.Parse(time.TimeOnly, timeStr)
 		if err != nil {
 			panic("Incorrect time format")
 		}
-		times = append(times, time)
+		times = append(times, timeOfDay)
 	}
 
 	return Notifications{
