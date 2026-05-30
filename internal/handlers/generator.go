@@ -25,6 +25,16 @@ func NewGenerator(genService GenerateService, userService UserService, phrasesSe
 
 func (g *Generator) GenerateFlower(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.CallbackQuery.Message.Message.Chat.ID
+	_, err := b.AnswerCallbackQuery(
+		ctx,
+		&bot.AnswerCallbackQueryParams{
+			CallbackQueryID: update.CallbackQuery.ID,
+			Text:            "Генерирую! Ожидайтес...",
+		},
+	)
+	if err != nil {
+		slog.Error("send message error", err)
+	}
 	user, err := g.userService.FindByUserName(ctx, update.CallbackQuery.From.Username)
 	if err != nil {
 		SendError(ctx, b, chatID)
