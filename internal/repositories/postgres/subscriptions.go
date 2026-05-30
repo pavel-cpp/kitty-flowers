@@ -23,6 +23,20 @@ func NewSubscriptionsRepository(db *sql.DB) *SubscriptionsRepository {
 	return &SubscriptionsRepository{db: db}
 }
 
+func (s *SubscriptionsRepository) IsSubscribed(ctx context.Context, userID uuid.UUID) (bool, error) {
+	query := `SELECT COUNT(*) FROM subscriptions WHERE user_id = $1`
+	row := s.db.QueryRowContext(ctx, query, userID)
+	if row.Err() != nil {
+		return false, row.Err()
+	}
+	var count int
+	err := row.Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (s *SubscriptionsRepository) CreateSubscription(ctx context.Context, userID uuid.UUID, timestamp time.Time) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {

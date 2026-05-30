@@ -28,6 +28,7 @@ type (
 	}
 
 	SubscriptionService interface {
+		IsSubscribed(ctx context.Context, userID uuid.UUID) (bool, error)
 		Subscribe(ctx context.Context, userID uuid.UUID, timestamp time.Time) error
 	}
 )
@@ -60,10 +61,18 @@ func (u *User) Start(ctx context.Context, b *bot.Bot, update *models.Update) {
 		return
 	}
 
-	for _, t := range u.defaultSubsTimes {
-		err := u.subsService.Subscribe(ctx, id, t)
-		if err != nil {
-			slog.Error("subscribe error", err)
+	ok, err := u.subsService.IsSubscribed(ctx, id)
+	if err != nil {
+		SendError(ctx, b, update.Message.Chat.ID)
+		slog.Error("check subscribed error", err)
+		return
+	}
+	if !ok {
+		for _, t := range u.defaultSubsTimes {
+			err := u.subsService.Subscribe(ctx, id, t)
+			if err != nil {
+				slog.Error("subscribe error", err)
+			}
 		}
 	}
 

@@ -14,6 +14,7 @@ type SubscriptionsRepository interface {
 	CreateSubscription(ctx context.Context, userID uuid.UUID, timestamp time.Time) error
 	GetUnnotifiedUsers(ctx context.Context, time time.Time) ([]entity.UserNotification, error)
 	UpdateUserNotificationTime(ctx context.Context, notificationID int, nextRun time.Time) error
+	IsSubscribed(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 type Service struct {
@@ -22,6 +23,10 @@ type Service struct {
 
 func New(repo SubscriptionsRepository) *Service {
 	return &Service{repo: repo}
+}
+
+func (s *Service) IsSubscribed(ctx context.Context, userID uuid.UUID) (bool, error) {
+	return s.repo.IsSubscribed(ctx, userID)
 }
 
 func (s *Service) Subscribe(ctx context.Context, userID uuid.UUID, timeOfDay time.Time) error {
