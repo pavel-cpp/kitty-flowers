@@ -78,6 +78,11 @@ func (ur *UserRepository) FindByUserName(ctx context.Context, username string) (
 }
 
 func (ur *UserRepository) IncrementDelivery(ctx context.Context, id uuid.UUID) error {
-	_, err := ur.db.Exec("UPDATE user_stats SET images_delivered = images_delivered + 1 where user_id = $1;", id)
+	query := `
+		INSERT INTO user_stats (user_id, images_delivered) VALUES ($1, 1)
+		ON CONFLICT ON CONSTRAINT user_stats_user_id_fk_unique DO
+		UPDATE SET images_delivered = user_stats.images_delivered + 1;
+	`
+	_, err := ur.db.ExecContext(ctx, query, id)
 	return err
 }
